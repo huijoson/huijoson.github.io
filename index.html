@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -38,6 +39,10 @@
         <div class="message">
             <h1>Yuhan & Vanessa</h1>
             <p>Forever Together</p>
+        </div>
+        <!-- 添加 QR Code 容器 -->
+        <div id="qrcode-container" style="background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 10px; margin-top: 20px;">
+            <div id="qrcode"></div>
         </div>
     </div>
     <script src="script.js"></script>
