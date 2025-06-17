@@ -12,21 +12,18 @@
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- Photo section -->
-        <div class="photo-container">
-            <!-- 這裡放置您的照片 -->
-            <img src="src/images/IMG_7754.jpg" alt="London memory" class="main-photo">
-        </div>
-        <div class="message">
-            <h1>Yuhan & Vanessa</h1>
+    <header class="site-header">
+        <h1>Yuhan &amp; Vanessa</h1>
+    </header>
+    <main class="hero">
+        <img src="src/images/IMG_7754.jpg" alt="London memory" class="main-photo">
+        <div class="hero-message">
             <p>Memories in London</p>
         </div>
-        <!-- 添加 QR Code 容器 -->
-        <div id="qrcode-container" style="background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 10px; margin-top: 20px;">
+        <div id="qrcode-container">
             <div id="qrcode"></div>
         </div>
-    </div>
+    </main>
     <script src="script.js"></script>
 </body>
-</html> 
+</html>
