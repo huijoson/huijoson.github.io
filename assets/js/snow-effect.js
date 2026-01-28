@@ -10,7 +10,7 @@ class JapaneseSnowEffect {
         this.snowflakes = [];
         this.animationId = null;
         this.isEnabled = this.loadPreference();
-        this.maxSnowflakes = 50; // Limit for performance
+        this.maxSnowflakes = 35; // Softer, lighter snowfall
         
         this.init();
     }
@@ -63,12 +63,12 @@ class JapaneseSnowEffect {
         return {
             x: Math.random() * this.canvas.width,
             y: fromTop ? -10 : Math.random() * this.canvas.height,
-            radius: Math.random() * 2.5 + 1, // Size: 1-3.5px
-            opacity: Math.random() * 0.6 + 0.3, // Opacity: 0.3-0.9
-            speedY: Math.random() * 1 + 0.5, // Vertical speed: 0.5-1.5
-            speedX: Math.random() * 0.5 - 0.25, // Horizontal drift: -0.25 to 0.25
+            radius: Math.random() * 1.4 + 0.8, // Size: 0.8-2.2px
+            opacity: Math.random() * 0.45 + 0.15, // Opacity: 0.15-0.6
+            speedY: Math.random() * 0.6 + 0.3, // Vertical speed: 0.3-0.9
+            speedX: Math.random() * 0.3 - 0.15, // Horizontal drift: -0.15 to 0.15
             wobble: Math.random() * Math.PI * 2, // Phase for wobble motion
-            wobbleSpeed: Math.random() * 0.02 + 0.01 // Wobble frequency
+            wobbleSpeed: Math.random() * 0.018 + 0.006 // Wobble frequency
         };
     }
     
@@ -79,7 +79,7 @@ class JapaneseSnowEffect {
             // Update position
             flake.y += flake.speedY;
             flake.wobble += flake.wobbleSpeed;
-            flake.x += Math.sin(flake.wobble) * 0.3 + flake.speedX;
+            flake.x += Math.sin(flake.wobble) * 0.2 + flake.speedX;
             
             // Reset snowflake if it goes off screen
             if (flake.y > this.canvas.height + 10) {
@@ -104,11 +104,11 @@ class JapaneseSnowEffect {
             this.ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
             this.ctx.fill();
             
-            // Add subtle glow for Japanese aesthetic
-            if (flake.radius > 2) {
+            // Subtle glow for larger flakes only
+            if (flake.radius > 1.6) {
                 this.ctx.beginPath();
-                this.ctx.arc(flake.x, flake.y, flake.radius * 1.5, 0, Math.PI * 2);
-                this.ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity * 0.2})`;
+                this.ctx.arc(flake.x, flake.y, flake.radius * 1.4, 0, Math.PI * 2);
+                this.ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity * 0.15})`;
                 this.ctx.fill();
             }
         }
