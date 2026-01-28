@@ -1,0 +1,89 @@
+/**
+ * Snow Effect Styling
+ * Japanese-inspired minimal aesthetic
+ */
+
+/* Snow canvas - already styled inline but keeping this for reference */
+#snow-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* Toggle button with Japanese aesthetic */
+#snow-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 36, 125, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10000;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#snow-toggle:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+#snow-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Subtle animation on the toggle button */
+@keyframes gentle-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+#snow-toggle.pulsing {
+    animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    #snow-toggle {
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+/* Accessibility: Focus state */
+#snow-toggle:focus {
+    outline: 3px solid rgba(0, 36, 125, 0.5);
+    outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    #snow-canvas {
+        display: none !important;
+    }
+    
+    #snow-toggle {
+        display: none !important;
+    }
+}
