@@ -121,7 +121,7 @@ function openPhotoDatabase() {
       });
 
       request.addEventListener('error', () => {
-        reject(request.error ?? new Error('無法開啟本機照片資料庫。'));
+        reject(request.error ?? new Error('無法開啟瀏覽器照片資料庫。'));
       });
     });
   }
@@ -158,7 +158,7 @@ async function saveUploadedImages(images) {
   const database = await openPhotoDatabase();
 
   if (!database) {
-    throw new Error('此瀏覽器不支援本機照片儲存。');
+    throw new Error('此瀏覽器不支援將照片存到瀏覽器。');
   }
 
   return new Promise((resolve, reject) => {
