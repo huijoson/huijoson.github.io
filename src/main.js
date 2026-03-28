@@ -1,5 +1,4 @@
-import './style.css';
-import heroImage from './images/IMG_7754.jpg';
+const heroImage = new URL('./images/IMG_7754.jpg', import.meta.url).href;
 
 const app = document.querySelector('#app');
 
