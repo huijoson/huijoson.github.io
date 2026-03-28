@@ -263,7 +263,8 @@ async function convertFileToGalleryPhoto(file) {
   const previewSrc = await createPixelPreview(fullSrc)
   const normalizedTitle = file.name
     .replace(/\.[^.]+$/, '')
-    .replace(/^[.\s]+|[.\s]+$/g, '')
+    .trim()
+    .replace(/^\.+|\.+$/g, '')
 
   const photo = {
     id: crypto.randomUUID(),
