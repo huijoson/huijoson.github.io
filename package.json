@@ -1,7 +1,7 @@
 {
-  "name": "huijoson.github.io",
+  "name": "huijoson-github-io",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,6 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^8.0.1"
+    "vite": "^8.0.3"
   }
 }

@@ -1,363 +1,293 @@
-import './style.css'
-import samplePhoto from './images/IMG_7754.jpg'
+import './style.css';
+import heroImage from './images/IMG_7754.jpg';
 
-const DB_NAME = 'cinnamoroll-gallery'
-const STORE_NAME = 'photos'
-const PIXEL_SIZE = 48
+const app = document.querySelector('#app');
 
 const state = {
-  photos: [],
-  activePhotoId: null,
-  scrollLocked: false,
-  objectUrls: [],
-}
-
-const app = document.querySelector('#app')
+  images: [
+    {
+      id: crypto.randomUUID(),
+      name: '倫敦回憶',
+      src: heroImage,
+      uploaded: false,
+    },
+  ],
+  activeIndex: 0,
+  wheelLocked: false,
+  modalImageId: null,
+};
 
 app.innerHTML = `
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-block">
-        <p class="eyebrow">Cinnamoroll dreamy album</p>
+  <div class="cloud-shell">
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <p class="eyebrow">Cinnamoroll inspired photo room</p>
         <h1>大耳狗雲朵相簿</h1>
-        <p class="subtitle">滾輪往下，一張一張翻閱 8-bit 預覽；點開就看真正的照片。</p>
-      </div>
-      <label class="upload-card" for="photo-upload">
-        <span class="upload-icon">☁️</span>
-        <span class="upload-copy">
-          <strong>上傳圖片</strong>
-          <small>圖片會儲存在目前瀏覽器中</small>
-        </span>
-      </label>
-      <input id="photo-upload" type="file" accept="image/*" multiple />
-    </header>
-
-    <div class="floating-hint">
-      <span id="gallery-count">讀取相簿中…</span>
-      <span>使用滾輪 / 方向鍵瀏覽</span>
-    </div>
-
-    <main class="gallery-track" aria-live="polite"></main>
-
-    <div class="viewer hidden" id="viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
-      <button class="viewer-close" id="viewer-close" type="button" aria-label="關閉原圖">✕</button>
-      <div class="viewer-panel">
-        <p class="viewer-label">Original photo</p>
-        <h2 id="viewer-title"></h2>
-        <img id="viewer-image" alt="" />
-      </div>
-    </div>
-  </div>
-`
-
-const galleryTrack = document.querySelector('.gallery-track')
-const uploadInput = document.querySelector('#photo-upload')
-const galleryCount = document.querySelector('#gallery-count')
-const viewer = document.querySelector('#viewer')
-const viewerImage = document.querySelector('#viewer-image')
-const viewerTitle = document.querySelector('#viewer-title')
-const viewerClose = document.querySelector('#viewer-close')
-
-function requestToPromise(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('資料存取失敗'))
-  })
-}
-
-function openGalleryDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open(DB_NAME, 1)
-
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE_NAME)) {
-        request.result.createObjectStore(STORE_NAME, { keyPath: 'id' })
-      }
-    }
-
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('無法開啟相簿資料庫'))
-  })
-}
-
-async function getStoredPhotos() {
-  try {
-    const database = await openGalleryDatabase()
-    const transaction = database.transaction(STORE_NAME, 'readonly')
-    const records = await requestToPromise(transaction.objectStore(STORE_NAME).getAll())
-    database.close()
-
-    return records
-      .sort((left, right) => left.createdAt - right.createdAt)
-      .map((record) => {
-        const fullSrc = URL.createObjectURL(record.file)
-        state.objectUrls.push(fullSrc)
-
-        return {
-          id: record.id,
-          title: record.title,
-          note: record.note,
-          previewSrc: record.previewSrc,
-          fullSrc,
-        }
-      })
-  } catch (error) {
-    console.error(error)
-    return []
-  }
-}
-
-async function savePhotoRecord(record) {
-  const database = await openGalleryDatabase()
-  const transaction = database.transaction(STORE_NAME, 'readwrite')
-  transaction.objectStore(STORE_NAME).put(record)
-  await new Promise((resolve, reject) => {
-    transaction.oncomplete = resolve
-    transaction.onerror = () => reject(transaction.error ?? new Error('儲存照片失敗'))
-    transaction.onabort = () => reject(transaction.error ?? new Error('儲存照片失敗'))
-  })
-  database.close()
-}
-
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('圖片載入失敗'))
-    image.src = src
-  })
-}
-
-async function createPixelPreview(src) {
-  const image = await loadImage(src)
-  const canvas = document.createElement('canvas')
-  canvas.width = PIXEL_SIZE
-  canvas.height = PIXEL_SIZE
-  const context = canvas.getContext('2d')
-
-  if (!context) {
-    return src
-  }
-
-  const shortestSide = Math.min(image.width, image.height)
-  const sourceX = (image.width - shortestSide) / 2
-  const sourceY = (image.height - shortestSide) / 2
-
-  context.imageSmoothingEnabled = false
-  context.drawImage(
-    image,
-    sourceX,
-    sourceY,
-    shortestSide,
-    shortestSide,
-    0,
-    0,
-    PIXEL_SIZE,
-    PIXEL_SIZE,
-  )
-
-  return canvas.toDataURL('image/png')
-}
-
-function createPhotoMarkup(photo, index) {
-  return `
-    <section class="gallery-slide" data-index="${index}" aria-label="${photo.title}">
-      <div class="photo-card">
-        <div class="photo-meta">
-          <p class="photo-order">No. ${String(index + 1).padStart(2, '0')}</p>
-          <h2>${photo.title}</h2>
-          <p>${photo.note}</p>
+        <p class="hero-text">
+          上傳你喜歡的照片，像翻閱雲朵故事書一樣，一張一張往下看。
+          相簿預覽會變成可愛的 8-bit 風格，點進去就能看到真正的照片。
+        </p>
+        <label class="upload-card" for="photo-upload">
+          <span class="upload-badge">☁️ 上傳圖片</span>
+          <span class="upload-help">支援多張圖片，會直接加入下方相簿。</span>
+          <input id="photo-upload" type="file" accept="image/*" multiple />
+        </label>
+        <div class="hero-notes">
+          <span>⬇️ 用滑鼠滾輪一張一張瀏覽</span>
+          <span>🟦 預覽會自動轉為 8-bit</span>
+          <span>📸 點圖片看原始相片</span>
         </div>
-        <button class="pixel-frame" type="button" data-photo-id="${photo.id}" aria-label="查看 ${photo.title} 原圖">
-          <img src="${photo.previewSrc}" alt="${photo.title} 的 8-bit 預覽" loading="lazy" />
-          <span>點我看原圖</span>
-        </button>
+      </div>
+      <div class="hero-preview">
+        <div class="mascot-card">
+          <span class="mascot-tag">初始封面</span>
+          <img src="${heroImage}" alt="倫敦回憶封面照片" class="hero-image" />
+        </div>
       </div>
     </section>
-  `
+
+    <section class="album-section" aria-labelledby="album-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Album</p>
+          <h2 id="album-title">滾輪一張一張相簿</h2>
+        </div>
+        <div class="album-actions">
+          <button type="button" class="nav-button" data-direction="-1" aria-label="上一張">↑</button>
+          <button type="button" class="nav-button" data-direction="1" aria-label="下一張">↓</button>
+        </div>
+      </div>
+      <div class="album-status" aria-live="polite"></div>
+      <div class="album-viewport" tabindex="0" aria-label="可用滾輪逐張瀏覽的相簿"></div>
+    </section>
+  </div>
+
+  <dialog class="photo-modal">
+    <form method="dialog" class="modal-backdrop">
+      <button class="close-button" aria-label="關閉照片">✕</button>
+    </form>
+    <div class="modal-content">
+      <div class="modal-copy">
+        <p class="eyebrow">Photo</p>
+        <h3 class="modal-title"></h3>
+        <p class="modal-text">這裡顯示實際相片，保留原本的色彩與細節。</p>
+      </div>
+      <img class="modal-image" alt="" />
+    </div>
+  </dialog>
+`;
+
+const fileInput = document.querySelector('#photo-upload');
+const albumViewport = document.querySelector('.album-viewport');
+const albumStatus = document.querySelector('.album-status');
+const modal = document.querySelector('.photo-modal');
+const modalTitle = document.querySelector('.modal-title');
+const modalImage = document.querySelector('.modal-image');
+const navButtons = document.querySelectorAll('.nav-button');
+
+function updateStatus() {
+  const total = state.images.length;
+  const current = total === 0 ? 0 : state.activeIndex + 1;
+  albumStatus.textContent = `第 ${current} / ${total} 張`;
 }
 
-function getPhotoById(photoId) {
-  return state.photos.find((photo) => photo.id === photoId)
+function pixelateImage(image, canvas) {
+  const width = 320;
+  const ratio = image.naturalHeight / image.naturalWidth || 1;
+  const height = Math.max(220, Math.round(width * ratio));
+  const pixelSize = 18;
+  const scaledWidth = Math.max(16, Math.round(width / pixelSize));
+  const scaledHeight = Math.max(16, Math.round(height / pixelSize));
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = scaledWidth;
+  offscreen.height = scaledHeight;
+  const offscreenCtx = offscreen.getContext('2d');
+  offscreenCtx.imageSmoothingEnabled = false;
+  offscreenCtx.drawImage(image, 0, 0, scaledWidth, scaledHeight);
+
+  canvas.width = width;
+  canvas.height = height;
+  canvas.style.aspectRatio = `${width} / ${height}`;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(offscreen, 0, 0, scaledWidth, scaledHeight, 0, 0, width, height);
 }
 
-function renderGallery() {
-  galleryTrack.innerHTML = state.photos.map(createPhotoMarkup).join('')
-  galleryCount.textContent = `目前有 ${state.photos.length} 張照片`
-
-  galleryTrack.querySelectorAll('[data-photo-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      openViewer(button.dataset.photoId)
-    })
-  })
+function enhancePreview(canvas) {
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(12, 12, width - 24, height - 24);
+  ctx.restore();
 }
 
-function openViewer(photoId) {
-  const photo = getPhotoById(photoId)
-  if (!photo) {
-    return
-  }
+function renderAlbum() {
+  albumViewport.innerHTML = state.images
+    .map(
+      (image, index) => `
+        <article class="album-slide" data-index="${index}">
+          <button type="button" class="preview-card" data-image-id="${image.id}">
+            <div class="slide-copy">
+              <span class="slide-count">Photo ${String(index + 1).padStart(2, '0')}</span>
+              <h3>${image.name}</h3>
+              <p>8-bit 預覽模式，點一下查看真實相片。</p>
+            </div>
+            <div class="preview-frame">
+              <canvas class="pixel-canvas" data-src="${image.src}" aria-hidden="true"></canvas>
+            </div>
+          </button>
+        </article>
+      `,
+    )
+    .join('');
 
-  state.activePhotoId = photoId
-  viewerImage.src = photo.fullSrc
-  viewerImage.alt = photo.title
-  viewerTitle.textContent = photo.title
-  viewer.classList.remove('hidden')
-  document.body.classList.add('viewer-open')
-}
+  albumViewport.querySelectorAll('.pixel-canvas').forEach((canvas) => {
+    const previewImage = new Image();
+    previewImage.src = canvas.dataset.src;
+    previewImage.alt = '';
+    previewImage.addEventListener('load', () => {
+      pixelateImage(previewImage, canvas);
+      enhancePreview(canvas);
+    });
+  });
 
-function closeViewer() {
-  state.activePhotoId = null
-  viewer.classList.add('hidden')
-  viewerImage.src = ''
-  viewerImage.alt = ''
-  document.body.classList.remove('viewer-open')
-}
-
-function getCurrentSlideIndex() {
-  if (!state.photos.length) {
-    return 0
-  }
-
-  return Math.round(galleryTrack.scrollTop / galleryTrack.clientHeight)
+  updateStatus();
 }
 
 function scrollToSlide(nextIndex) {
-  const clampedIndex = Math.max(0, Math.min(nextIndex, state.photos.length - 1))
-  const target = galleryTrack.querySelector(`[data-index="${clampedIndex}"]`)
+  const clampedIndex = Math.max(0, Math.min(nextIndex, state.images.length - 1));
+  const slides = albumViewport.querySelectorAll('.album-slide');
+  const target = slides[clampedIndex];
 
   if (!target) {
-    return
+    return;
   }
 
-  target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  state.activeIndex = clampedIndex;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  updateStatus();
 }
 
-function handleWheelNavigation(event) {
-  if (viewer.classList.contains('hidden') === false) {
-    return
-  }
-
-  event.preventDefault()
-
-  if (state.scrollLocked || state.photos.length < 2) {
-    return
-  }
-
-  const direction = Math.sign(event.deltaY)
-  if (!direction) {
-    return
-  }
-
-  state.scrollLocked = true
-  scrollToSlide(getCurrentSlideIndex() + direction)
-
+function lockWheelNavigation() {
+  state.wheelLocked = true;
   window.setTimeout(() => {
-    state.scrollLocked = false
-  }, 650)
+    state.wheelLocked = false;
+  }, 650);
 }
 
-async function convertFileToGalleryPhoto(file) {
-  const fullSrc = URL.createObjectURL(file)
-  state.objectUrls.push(fullSrc)
-  const previewSrc = await createPixelPreview(fullSrc)
-  const normalizedTitle = file.name
-    .replace(/\.[^.]+$/, '')
-    .trim()
-    .replace(/^\.+|\.+$/g, '')
+function openModal(imageId) {
+  const image = state.images.find((item) => item.id === imageId);
 
-  const photo = {
-    id: crypto.randomUUID(),
-    title: normalizedTitle || '新的雲朵回憶',
-    note: '來自你剛剛上傳的照片',
-    previewSrc,
-    fullSrc,
-    file,
-    createdAt: Date.now(),
+  if (!image) {
+    return;
   }
 
-  await savePhotoRecord({
-    id: photo.id,
-    title: photo.title,
-    note: photo.note,
-    previewSrc: photo.previewSrc,
-    file: photo.file,
-    createdAt: photo.createdAt,
-  })
+  state.modalImageId = imageId;
+  modalTitle.textContent = image.name;
+  modalImage.src = image.src;
+  modalImage.alt = image.name;
 
-  return photo
-}
-
-async function handlePhotoUpload(event) {
-  const files = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith('image/'))
-  if (!files.length) {
-    return
-  }
-
-  galleryCount.textContent = '正在把照片裝進雲朵裡…'
-
-  try {
-    const newPhotos = await Promise.all(files.map(convertFileToGalleryPhoto))
-    state.photos = [...state.photos, ...newPhotos]
-    renderGallery()
-    scrollToSlide(state.photos.length - newPhotos.length)
-  } catch (error) {
-    galleryCount.textContent = '上傳失敗，請重新試一次'
-    console.error(error)
-  } finally {
-    uploadInput.value = ''
+  if (typeof modal.showModal === 'function') {
+    modal.showModal();
+  } else {
+    modal.setAttribute('open', 'open');
   }
 }
 
-function handleKeyboardNavigation(event) {
-  if (event.key === 'Escape') {
-    closeViewer()
-    return
+fileInput.addEventListener('change', (event) => {
+  const files = Array.from(event.target.files || []);
+
+  if (files.length === 0) {
+    return;
   }
 
-  if (viewer.classList.contains('hidden') === false) {
-    return
+  const uploadedImages = files
+    .filter((file) => file.type.startsWith('image/'))
+    .map((file) => ({
+      id: crypto.randomUUID(),
+      name: file.name.replace(/\.[^.]+$/, ''),
+      src: URL.createObjectURL(file),
+      uploaded: true,
+    }));
+
+  state.images = [...state.images, ...uploadedImages];
+  renderAlbum();
+  scrollToSlide(state.images.length - uploadedImages.length);
+  fileInput.value = '';
+});
+
+albumViewport.addEventListener(
+  'wheel',
+  (event) => {
+    event.preventDefault();
+
+    if (state.wheelLocked || state.images.length < 2) {
+      return;
+    }
+
+    const direction = event.deltaY > 0 ? 1 : -1;
+    lockWheelNavigation();
+    scrollToSlide(state.activeIndex + direction);
+  },
+  { passive: false },
+);
+
+albumViewport.addEventListener('click', (event) => {
+  const trigger = event.target.closest('.preview-card');
+
+  if (!trigger) {
+    return;
   }
 
-  if (event.key === 'ArrowDown') {
-    scrollToSlide(getCurrentSlideIndex() + 1)
-  }
+  openModal(trigger.dataset.imageId);
+});
 
-  if (event.key === 'ArrowUp') {
-    scrollToSlide(getCurrentSlideIndex() - 1)
-  }
-}
+albumViewport.addEventListener('scroll', () => {
+  const slides = Array.from(albumViewport.querySelectorAll('.album-slide'));
+  const viewportTop = albumViewport.scrollTop;
+  const viewportHeight = albumViewport.clientHeight;
 
-async function createSeedPhoto() {
-  return {
-    id: 'seed-photo',
-    title: '雲朵出發前',
-    note: '先用 8-bit 模樣預覽，打開後就是完整的真實照片。',
-    previewSrc: await createPixelPreview(samplePhoto),
-    fullSrc: samplePhoto,
-  }
-}
+  let nextIndex = state.activeIndex;
+  let smallestDistance = Number.POSITIVE_INFINITY;
 
-async function initializeGallery() {
-  const [seedPhoto, storedPhotos] = await Promise.all([createSeedPhoto(), getStoredPhotos()])
-  state.photos = [seedPhoto, ...storedPhotos]
-  renderGallery()
-}
+  slides.forEach((slide, index) => {
+    const distance = Math.abs(slide.offsetTop - viewportTop - viewportHeight * 0.1);
+    if (distance < smallestDistance) {
+      smallestDistance = distance;
+      nextIndex = index;
+    }
+  });
 
-uploadInput.addEventListener('change', handlePhotoUpload)
-galleryTrack.addEventListener('wheel', handleWheelNavigation, { passive: false })
-viewer.addEventListener('click', (event) => {
-  if (event.target === viewer) {
-    closeViewer()
+  if (nextIndex !== state.activeIndex) {
+    state.activeIndex = nextIndex;
+    updateStatus();
   }
-})
-viewerClose.addEventListener('click', closeViewer)
-window.addEventListener('keydown', handleKeyboardNavigation)
+});
+
+navButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    scrollToSlide(state.activeIndex + Number(button.dataset.direction));
+  });
+});
+
+modal.addEventListener('click', (event) => {
+  if (event.target === modal) {
+    modal.close();
+  }
+});
+
 window.addEventListener('beforeunload', () => {
-  state.objectUrls.forEach((url) => URL.revokeObjectURL(url))
-})
+  state.images.forEach((image) => {
+    if (image.uploaded) {
+      URL.revokeObjectURL(image.src);
+    }
+  });
+});
 
-initializeGallery().catch((error) => {
-  galleryCount.textContent = '相簿讀取失敗，請重新整理頁面'
-  console.error(error)
-})
+renderAlbum();
