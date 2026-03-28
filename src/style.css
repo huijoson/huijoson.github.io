@@ -1,5 +1,10 @@
 :root {
-  font-family: 'Nunito', sans-serif;
+  font-family:
+    'PingFang TC',
+    'Microsoft JhengHei',
+    'Noto Sans CJK TC',
+    'Heiti TC',
+    sans-serif;
   color: #486c93;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.95), rgba(214, 237, 255, 0.95) 40%, #b7ddff 100%);
@@ -107,7 +112,13 @@ h2,
 h3 {
   margin: 0;
   color: #4f7cad;
-  font-family: 'Kiwi Maru', serif;
+  font-family:
+    'PingFang TC',
+    'Microsoft JhengHei',
+    'Noto Sans CJK TC',
+    'Heiti TC',
+    sans-serif;
+  font-weight: 800;
 }
 
 h1 {
