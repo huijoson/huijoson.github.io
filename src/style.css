@@ -1,0 +1,351 @@
+:root {
+  font-family: 'Nunito', sans-serif;
+  color: #29435f;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 30%),
+    linear-gradient(180deg, #dff3ff 0%, #a9d8ff 45%, #83c0f4 100%);
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  overflow: hidden;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: auto auto 8% 4%;
+  width: 180px;
+  height: 60px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  filter: blur(4px);
+  box-shadow:
+    48px 12px 0 8px rgba(255, 255, 255, 0.72),
+    110px 0 0 -4px rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+}
+
+body::after {
+  inset: 18% 10% auto auto;
+  transform: scale(0.8);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+#app {
+  height: 100vh;
+}
+
+.app-shell {
+  position: relative;
+  height: 100vh;
+}
+
+.topbar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(1100px, calc(100vw - 32px));
+  padding: 20px 24px;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 50px rgba(71, 125, 172, 0.18);
+  transform: translateX(-50%);
+}
+
+.brand-block {
+  display: grid;
+  gap: 6px;
+}
+
+.eyebrow,
+.viewer-label,
+.photo-order {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5f8db7;
+}
+
+.brand-block h1 {
+  margin: 0;
+  font-family: 'Darumadrop One', cursive;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+  color: #3d6a96;
+}
+
+.subtitle {
+  margin: 0;
+  max-width: 48ch;
+  font-size: 0.98rem;
+  color: #486b8d;
+}
+
+.upload-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff, #e8f7ff);
+  color: #42688e;
+  box-shadow: inset 0 0 0 2px rgba(127, 190, 237, 0.22);
+  cursor: pointer;
+}
+
+.upload-card:hover {
+  transform: translateY(-1px);
+}
+
+.upload-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #b8e6ff;
+  font-size: 1.5rem;
+}
+
+.upload-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.upload-copy small {
+  color: #6f8eac;
+}
+
+#photo-upload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floating-hint {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 8;
+  display: grid;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: 20px;
+  background: rgba(54, 97, 137, 0.74);
+  color: #f6fbff;
+  box-shadow: 0 12px 40px rgba(46, 72, 98, 0.26);
+}
+
+.gallery-track {
+  height: 100vh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.gallery-track::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-slide {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 168px 20px 90px;
+  scroll-snap-align: start;
+}
+
+.photo-card {
+  display: grid;
+  gap: 26px;
+  width: min(1040px, 100%);
+  padding: min(5vw, 48px);
+  border: 4px solid rgba(255, 255, 255, 0.75);
+  border-radius: 40px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(234, 247, 255, 0.9)),
+    linear-gradient(135deg, rgba(201, 235, 255, 0.7), rgba(255, 255, 255, 0.65));
+  box-shadow: 0 24px 70px rgba(62, 112, 151, 0.22);
+}
+
+.photo-meta {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+.photo-meta h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  color: #355c82;
+}
+
+.photo-meta p:last-child {
+  margin: 0;
+  max-width: 34ch;
+  color: #5a7899;
+}
+
+.pixel-frame {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  padding: 28px;
+  border-radius: 32px;
+  background: #ffffff;
+  box-shadow:
+    inset 0 0 0 4px #d1efff,
+    0 12px 30px rgba(85, 140, 183, 0.18);
+}
+
+.pixel-frame img {
+  width: min(100%, 640px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  image-rendering: pixelated;
+  border-radius: 20px;
+  box-shadow: 0 12px 24px rgba(64, 107, 150, 0.18);
+}
+
+.pixel-frame span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #b2e8ff;
+  color: #2c587f;
+  font-weight: 700;
+}
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(17, 34, 49, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.viewer.hidden {
+  display: none;
+}
+
+.viewer-open {
+  overflow: hidden;
+}
+
+.viewer-panel {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  padding: clamp(20px, 4vw, 32px);
+  border-radius: 32px;
+  background: #f8fdff;
+  box-shadow: 0 22px 60px rgba(7, 17, 27, 0.24);
+}
+
+.viewer-panel h2 {
+  margin: 6px 0 18px;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  color: #355c82;
+}
+
+.viewer-panel img {
+  width: 100%;
+  max-height: calc(100vh - 210px);
+  object-fit: contain;
+  border-radius: 24px;
+}
+
+.viewer-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #365d83;
+  font-size: 1.2rem;
+  box-shadow: 0 10px 30px rgba(10, 20, 30, 0.2);
+}
+
+@media (max-width: 720px) {
+  body {
+    overflow: auto;
+  }
+
+  .topbar {
+    top: 12px;
+    width: calc(100vw - 24px);
+    padding: 18px;
+    border-radius: 28px;
+  }
+
+  .gallery-slide {
+    padding-top: 220px;
+  }
+
+  .photo-card {
+    padding: 24px 18px;
+    border-radius: 30px;
+  }
+
+  .pixel-frame {
+    padding: 18px;
+  }
+
+  .floating-hint {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    text-align: center;
+  }
+}
