@@ -164,6 +164,14 @@ h2 {
   display: block;
 }
 
+.upload-status {
+  min-height: 1.5em;
+  margin: 12px 4px 0;
+  color: #5d88b4;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .upload-badge {
   font-weight: 800;
   font-size: 1.15rem;
