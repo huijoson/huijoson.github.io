@@ -81,26 +81,30 @@ function openGalleryDatabase() {
 }
 
 async function getStoredPhotos() {
-  const database = await openGalleryDatabase()
-  const transaction = database.transaction(STORE_NAME, 'readonly')
-  const records = await requestToPromise(transaction.objectStore(STORE_NAME).getAll())
-  transaction.commit?.()
-  database.close()
+  try {
+    const database = await openGalleryDatabase()
+    const transaction = database.transaction(STORE_NAME, 'readonly')
+    const records = await requestToPromise(transaction.objectStore(STORE_NAME).getAll())
+    database.close()
 
-  return records
-    .sort((left, right) => left.createdAt - right.createdAt)
-    .map((record) => {
-      const fullSrc = URL.createObjectURL(record.file)
-      state.objectUrls.push(fullSrc)
+    return records
+      .sort((left, right) => left.createdAt - right.createdAt)
+      .map((record) => {
+        const fullSrc = URL.createObjectURL(record.file)
+        state.objectUrls.push(fullSrc)
 
-      return {
-        id: record.id,
-        title: record.title,
-        note: record.note,
-        previewSrc: record.previewSrc,
-        fullSrc,
-      }
-    })
+        return {
+          id: record.id,
+          title: record.title,
+          note: record.note,
+          previewSrc: record.previewSrc,
+          fullSrc,
+        }
+      })
+  } catch (error) {
+    console.error(error)
+    return []
+  }
 }
 
 async function savePhotoRecord(record) {
@@ -259,7 +263,7 @@ async function convertFileToGalleryPhoto(file) {
   const previewSrc = await createPixelPreview(fullSrc)
 
   const photo = {
-    id: `${Date.now()}-${crypto.randomUUID()}`,
+    id: crypto.randomUUID(),
     title: file.name.replace(/\.[^.]+$/, '') || '新的雲朵回憶',
     note: '來自你剛剛上傳的照片',
     previewSrc,
