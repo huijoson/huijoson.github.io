@@ -1,4 +1,7 @@
 const heroImage = new URL('./images/IMG_7754.jpg', import.meta.url).href;
+const PHOTO_DB_NAME = 'cinnamoroll-photo-room';
+const PHOTO_DB_VERSION = 1;
+const PHOTO_STORE_NAME = 'uploaded-photos';
 
 const app = document.querySelector('#app');
 
@@ -15,6 +18,7 @@ const state = {
   wheelLocked: false,
   modalImageId: null,
 };
+let photoDatabasePromise;
 
 app.innerHTML = `
   <div class="cloud-shell">
@@ -28,9 +32,10 @@ app.innerHTML = `
         </p>
         <label class="upload-card" for="photo-upload">
           <span class="upload-badge">☁️ 上傳圖片</span>
-          <span class="upload-help">支援多張圖片，會直接加入下方相簿。</span>
+          <span class="upload-help">支援多張圖片，會直接加入下方相簿，也會保存在這台裝置的瀏覽器。</span>
           <input id="photo-upload" type="file" accept="image/*" multiple />
         </label>
+        <p class="upload-status" aria-live="polite"></p>
         <div class="hero-notes">
           <span>⬇️ 用滑鼠滾輪一張一張瀏覽</span>
           <span>🟦 預覽會自動轉為 8-bit</span>
@@ -82,12 +87,116 @@ const albumStatus = document.querySelector('.album-status');
 const modal = document.querySelector('.photo-modal');
 const modalTitle = document.querySelector('.modal-title');
 const modalImage = document.querySelector('.modal-image');
+const uploadStatus = document.querySelector('.upload-status');
 const navButtons = document.querySelectorAll('.nav-button');
 
 function updateStatus() {
   const total = state.images.length;
   const current = total === 0 ? 0 : state.activeIndex + 1;
   albumStatus.textContent = `第 ${current} / ${total} 張`;
+}
+
+function setUploadStatus(message) {
+  uploadStatus.textContent = message;
+}
+
+function openPhotoDatabase() {
+  if (!('indexedDB' in window)) {
+    return Promise.resolve(null);
+  }
+
+  if (!photoDatabasePromise) {
+    photoDatabasePromise = new Promise((resolve, reject) => {
+      const request = window.indexedDB.open(PHOTO_DB_NAME, PHOTO_DB_VERSION);
+
+      request.addEventListener('upgradeneeded', () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+          database.createObjectStore(PHOTO_STORE_NAME, { keyPath: 'id' });
+        }
+      });
+
+      request.addEventListener('success', () => {
+        resolve(request.result);
+      });
+
+      request.addEventListener('error', () => {
+        reject(request.error ?? new Error('無法開啟瀏覽器照片資料庫。'));
+      });
+    });
+  }
+
+  return photoDatabasePromise;
+}
+
+async function loadSavedImages() {
+  const database = await openPhotoDatabase();
+
+  if (!database) {
+    return [];
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(PHOTO_STORE_NAME, 'readonly');
+    const store = transaction.objectStore(PHOTO_STORE_NAME);
+    const request = store.getAll();
+
+    request.addEventListener('success', () => {
+      const savedImages = (request.result ?? []).sort(
+        (left, right) => Number(left.createdAt ?? 0) - Number(right.createdAt ?? 0),
+      );
+      resolve(savedImages);
+    });
+
+    request.addEventListener('error', () => {
+      reject(request.error ?? new Error('無法讀取已儲存的照片。'));
+    });
+  });
+}
+
+async function saveUploadedImages(images) {
+  const database = await openPhotoDatabase();
+
+  if (!database) {
+    throw new Error('此瀏覽器不支援將照片存到瀏覽器。');
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(PHOTO_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(PHOTO_STORE_NAME);
+
+    images.forEach((image) => {
+      store.put({
+        id: image.id,
+        name: image.name,
+        blob: image.blob,
+        createdAt: image.createdAt,
+      });
+    });
+
+    transaction.addEventListener('complete', () => {
+      resolve();
+    });
+
+    transaction.addEventListener('error', () => {
+      reject(transaction.error ?? new Error('無法儲存上傳的照片。'));
+    });
+
+    transaction.addEventListener('abort', () => {
+      reject(transaction.error ?? new Error('無法儲存上傳的照片。'));
+    });
+  });
+}
+
+function createImageEntry({ id, name, blob, createdAt }) {
+  return {
+    id,
+    name,
+    src: URL.createObjectURL(blob),
+    uploaded: true,
+    blob,
+    createdAt,
+  };
 }
 
 function pixelateImage(image, canvas) {
@@ -199,25 +308,44 @@ function openModal(imageId) {
   }
 }
 
-fileInput.addEventListener('change', (event) => {
+fileInput.addEventListener('change', async (event) => {
   const files = Array.from(event.target.files || []);
 
   if (files.length === 0) {
     return;
   }
 
-  const uploadedImages = files
-    .filter((file) => file.type.startsWith('image/'))
-    .map((file) => ({
+  const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+  const uploadedImages = imageFiles.map((file, index) =>
+    createImageEntry({
       id: crypto.randomUUID(),
       name: file.name.replace(/\.[^.]+$/, ''),
-      src: URL.createObjectURL(file),
-      uploaded: true,
-    }));
+      blob: file,
+      createdAt: Date.now() + index,
+    }),
+  );
+
+  if (uploadedImages.length === 0) {
+    setUploadStatus('請選擇圖片檔案。');
+    return;
+  }
+
+  let savedToBrowser = true;
+
+  try {
+    await saveUploadedImages(uploadedImages);
+  } catch (error) {
+    console.error(error);
+    savedToBrowser = false;
+    setUploadStatus('照片上傳成功，但暫時無法存到瀏覽器。');
+  }
 
   state.images = [...state.images, ...uploadedImages];
   renderAlbum();
   scrollToSlide(state.images.length - uploadedImages.length);
+  if (savedToBrowser) {
+    setUploadStatus(`已儲存 ${uploadedImages.length} 張照片，下次開啟也會保留。`);
+  }
   fileInput.value = '';
 });
 
@@ -290,3 +418,23 @@ window.addEventListener('beforeunload', () => {
 });
 
 renderAlbum();
+setUploadStatus('上傳的照片會保存在這台裝置的瀏覽器中。');
+
+loadSavedImages()
+  .then((savedImages) => {
+    const restoredImages = savedImages
+      .filter((image) => image.blob instanceof Blob)
+      .map(createImageEntry);
+
+    if (restoredImages.length === 0) {
+      return;
+    }
+
+    state.images = [...state.images, ...restoredImages];
+    renderAlbum();
+    setUploadStatus(`已載入 ${restoredImages.length} 張先前儲存的照片。`);
+  })
+  .catch((error) => {
+    console.error(error);
+    setUploadStatus('目前無法讀取先前儲存的照片。');
+  });
