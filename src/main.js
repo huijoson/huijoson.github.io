@@ -261,10 +261,13 @@ async function convertFileToGalleryPhoto(file) {
   const fullSrc = URL.createObjectURL(file)
   state.objectUrls.push(fullSrc)
   const previewSrc = await createPixelPreview(fullSrc)
+  const normalizedTitle = file.name
+    .replace(/\.[^.]+$/, '')
+    .replace(/^[.\s]+|[.\s]+$/g, '')
 
   const photo = {
     id: crypto.randomUUID(),
-    title: file.name.replace(/\.[^.]+$/, '') || '新的雲朵回憶',
+    title: normalizedTitle || '新的雲朵回憶',
     note: '來自你剛剛上傳的照片',
     previewSrc,
     fullSrc,
