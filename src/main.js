@@ -1,5 +1,4 @@
-import './style.css'
-import samplePhoto from './images/IMG_7754.jpg'
+const samplePhoto = new URL('./images/IMG_7754.jpg', import.meta.url).href
 
 const DB_NAME = 'cinnamoroll-gallery'
 const STORE_NAME = 'photos'
